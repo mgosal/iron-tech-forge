@@ -1,4 +1,11 @@
 .forge/
 .env
+.env.local
+.env.test
 .antigravity/.mission.pid
 .antigravity/mission.log
+.DS_Store
+*.log
+forge_workspaces/
+test_config.sh
+test_env.sh

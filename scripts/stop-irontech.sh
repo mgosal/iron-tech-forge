@@ -7,7 +7,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-PID_FILE="${PROJECT_ROOT}/.antigravity/.mission.pid"
+PID_FILE="${PROJECT_ROOT}/.irontech.pid"
 
 if [ ! -f "$PID_FILE" ]; then
   echo "IronTech is not running (no PID file found)."

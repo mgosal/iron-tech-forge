@@ -13,7 +13,9 @@ if [ -f "${PROJECT_ROOT}/.env" ]; then
   export $(grep -v '^#' "${PROJECT_ROOT}/.env" | xargs)
 fi
 
-FORGE_BASE_DIR="${PROJECT_ROOT}/.forge"
+CONFIG_FILE="${PROJECT_ROOT}/.antigravity/config.yml"
+FORGE_BASE=$(grep 'base_dir:' "$CONFIG_FILE" | awk '{print $2}' | tr -d '"' || echo ".forge")
+FORGE_BASE_DIR="${PROJECT_ROOT}/${FORGE_BASE}"
 BRANCH_PREFIX="ag/"
 
 if [ $# -lt 2 ]; then

@@ -16,13 +16,13 @@ labels:
   needs_human: "ag-needs-human"
 
 forge:
-  base_dir: ".forge"
+  base_dir: "forge_workspaces"
   base_branch: "main"
   branch_prefix: "ag/"
   cleanup_after_merge: true
 
 agents:
-  model: "anthropic/claude-opus"   # via OpenRouter
+  model: "anthropic/claude-opus-4.6"   # via OpenRouter
   provider: "openrouter"
   max_tokens: 8192
   temperature: 0

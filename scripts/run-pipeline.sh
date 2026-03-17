@@ -10,7 +10,13 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # Source .env if it exists
 if [ -f "${PROJECT_ROOT}/.env" ]; then
-  export $(grep -v '^#' "${PROJECT_ROOT}/.env" | xargs)
+  set -a
+  source "${PROJECT_ROOT}/.env"
+  set +a
+elif [ -f "${PROJECT_ROOT}/.env.local" ]; then
+  set -a
+  source "${PROJECT_ROOT}/.env.local"
+  set +a
 fi
 
 if [ $# -lt 2 ]; then
@@ -23,8 +29,10 @@ ISSUE_ID="$2"
 OWNER=$(echo "$REPO" | cut -d'/' -f1)
 REPO_NAME=$(echo "$REPO" | cut -d'/' -f2)
 REPO_SLUG="${OWNER}-${REPO_NAME}"
+CONFIG_FILE="${PROJECT_ROOT}/.antigravity/config.yml"
 
-FORGE_DIR="${PROJECT_ROOT}/.forge/${REPO_SLUG}/issue-${ISSUE_ID}"
+FORGE_BASE=$(grep 'base_dir:' "$CONFIG_FILE" | awk '{print $2}' | tr -d '"' || echo ".forge")
+FORGE_DIR="${PROJECT_ROOT}/${FORGE_BASE}/${REPO_SLUG}/issue-${ISSUE_ID}"
 META_DIR="${FORGE_DIR}/.forge-meta"
 LOG_FILE="${META_DIR}/pipeline.log"
 AGENTS_DIR="${PROJECT_ROOT}/.agents"
@@ -36,7 +44,11 @@ log() {
 
 gate_check() {
   local file="$1" field="$2" expected="$3" stage="$4"
-  actual=$(jq -r "$field" "$file")
+  if [ ! -s "$file" ]; then
+    log "GATE FAILED at ${stage}: Output file is empty or missing."
+    exit 1
+  fi
+  actual=$(jq -r "$field" "$file" 2>/dev/null || echo "parse_error")
   if [ "$actual" != "$expected" ]; then
     log "GATE FAILED at ${stage}: ${field} = ${actual} (expected ${expected})"
     gh issue edit "$ISSUE_ID" -R "$REPO" --add-label "ag-needs-human" --remove-label "ag-in-progress" 2>/dev/null || true
@@ -56,15 +68,31 @@ invoke_agent() {
   [ -f "$conventions_file" ] && system_prompt="${system_prompt}\n\n---\n# Shared Conventions\n$(cat "$conventions_file")"
   [ "$agent_name" = "security-gate" ] && [ -f "${AGENTS_DIR}/shared/security-patterns.md" ] && system_prompt="${system_prompt}\n\n---\n# Security Patterns\n$(cat "${AGENTS_DIR}/shared/security-patterns.md")"
 
-  log "Invoking agent: ${agent_name}"
-  response=$(curl -s https://openrouter.ai/api/v1/chat/completions \
+  local AGENT_MODEL=$(grep 'model:' "$CONFIG_FILE" | head -1 | awk '{print $2}' | tr -d '"' || echo "anthropic/claude-3-opus")
+
+  log "Invoking agent: ${agent_name} (${AGENT_MODEL})"
+  
+  # Use curl with verbose output on error
+  set +e
+  response=$(curl -s -S -w "\n%{http_code}" https://openrouter.ai/api/v1/chat/completions \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer ${OPENROUTER_API_KEY}" \
-    -d "$(jq -n --arg model "anthropic/claude-opus" --arg system "$system_prompt" --arg user "$extra_context" '{model: $model, messages: [{role: "system", content: $system}, {role: "user", content: $user}], max_tokens: 8192, temperature: 0}')")
+    -d "$(jq -n --arg model "$AGENT_MODEL" --arg system "$system_prompt" --arg user "$extra_context" '{model: $model, messages: [{role: "system", content: $system}, {role: "user", content: $user}], max_tokens: 8192, temperature: 0}')")
+  curl_exit=$?
+  set -e
 
-  content=$(echo "$response" | jq -r '.choices[0].message.content // empty')
+  http_code=$(echo "$response" | tail -n 1)
+  body=$(echo "$response" | sed '$d')
+
+  if [ "$curl_exit" -ne 0 ] || [ "$http_code" != "200" ]; then
+    log "ERROR: Agent ${agent_name} call failed (Curl: ${curl_exit}, HTTP: ${http_code})"
+    log "Response Body: ${body}"
+    exit 1
+  fi
+
+  content=$(echo "$body" | jq -r '.choices[0].message.content // empty')
   if [ -z "$content" ]; then
-    log "ERROR: No response from agent ${agent_name}."
+    log "ERROR: No content in agent response for ${agent_name}."
     exit 1
   fi
   echo "$content"
@@ -72,10 +100,24 @@ invoke_agent() {
 
 extract_json() {
   local text="$1"
-  json=$(echo "$text" | sed -n '/^```json/,/^```$/p' | sed '1d;$d')
-  [ -z "$json" ] && json=$(echo "$text" | sed -n '/^{/,/^}/p')
-  [ -z "$json" ] && json="$text"
-  echo "$json"
+  # Try to find the last ```json block
+  json=$(echo "$text" | awk '/^```json/{json=""; p=1; next} /^```$/{p=0} p{json=json $0 "\n"} END{print json}')
+  
+  if [ -z "$json" ]; then
+    # Fallback: Find the last text between '{' and '}'
+    json=$(echo "$text" | grep -o '{.*}' | tail -n 1 || echo "")
+  fi
+  
+  if [ -z "$json" ]; then
+    # Final fallback for multi-line JSON without markers
+    json=$(echo "$text" | sed -n '/^{/,/^}/p' | tail -n 1000 || echo "")
+  fi
+  
+  if [ -z "$json" ]; then
+    echo "$text"
+  else
+    echo "$json"
+  fi
 }
 
 if [ ! -d "$FORGE_DIR" ]; then exit 1; fi
@@ -132,8 +174,8 @@ PR_RESPONSE=$(invoke_agent "pr-assembler" "# Context\n$(ls "${META_DIR}")")
 echo "$PR_RESPONSE" > "${META_DIR}/pr-description.md"
 
 # Get bot identity from config
-BOT_NAME=$(grep 'name:' "$CONFIG_FILE" -A 0 | grep -v 'agent_name' | head -1 | sed 's/.*name: "\([^"]*\)".*/\1/' || echo "Mission Smith")
-BOT_EMAIL=$(grep 'email:' "$CONFIG_FILE" | awk '{print $2}' | tr -d '"' || echo "mission-smith@antigravity.ai")
+BOT_NAME=$(grep 'name:' "$CONFIG_FILE" -A 0 | grep -v 'agent_name' | head -1 | sed 's/.*name: "\([^"]*\)".*/\1/' || echo "ForgeMaster")
+BOT_EMAIL=$(grep 'email:' "$CONFIG_FILE" | awk '{print $2}' | tr -d '"' || echo "forgemaster@antigravity.ai")
 
 cd "$FORGE_DIR"
 git add -A

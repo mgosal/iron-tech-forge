@@ -9,13 +9,19 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# Source .env if it exists
+# Source .env if it exists (using set -a for cleaner export)
 if [ -f "${PROJECT_ROOT}/.env" ]; then
-  export $(grep -v '^#' "${PROJECT_ROOT}/.env" | xargs)
+  set -a
+  source "${PROJECT_ROOT}/.env"
+  set +a
+elif [ -f "${PROJECT_ROOT}/.env.local" ]; then
+  set -a
+  source "${PROJECT_ROOT}/.env.local"
+  set +a
 fi
 
-PID_FILE="${PROJECT_ROOT}/.antigravity/.mission.pid"
-MISSION_LOG="${PROJECT_ROOT}/.antigravity/mission.log"
+PID_FILE="${PROJECT_ROOT}/.irontech.pid"
+MISSION_LOG="${PROJECT_ROOT}/irontech.log"
 CONFIG_FILE="${PROJECT_ROOT}/.antigravity/config.yml"
 
 # Extract defaults from config.yml (using basic grep/sed for portability)
@@ -34,7 +40,8 @@ log() {
 }
 
 active_forge_count() {
-  local forge_dir="${PROJECT_ROOT}/.forge"
+  local forge_base=$(grep 'base_dir:' "$CONFIG_FILE" | awk '{print $2}' | tr -d '"' || echo ".forge")
+  local forge_dir="${PROJECT_ROOT}/${forge_base}"
   if [ ! -d "$forge_dir" ]; then echo 0; return; fi
   find "$forge_dir" -mindepth 2 -maxdepth 2 -type d -name 'issue-*' 2>/dev/null | wc -l | tr -d ' '
 }

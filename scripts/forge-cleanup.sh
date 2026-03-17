@@ -8,7 +8,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-FORGE_BASE_DIR="${PROJECT_ROOT}/.forge"
+CONFIG_FILE="${PROJECT_ROOT}/.antigravity/config.yml"
+FORGE_BASE=$(grep 'base_dir:' "$CONFIG_FILE" | awk '{print $2}' | tr -d '"' || echo ".forge")
+FORGE_BASE_DIR="${PROJECT_ROOT}/${FORGE_BASE}"
 
 cleanup_forge() {
   local repo="$1"

@@ -1,9 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
-# start-mission.sh — Polling daemon that monitors GitHub for issues across MULTIPLE repos
+# start-irontech.sh — Polling daemon that monitors GitHub for issues across MULTIPLE repos
 #
-# Usage: ./scripts/start-mission.sh
+# Usage: ./scripts/start-irontech.sh
 
 # SCRIPT_DIR and PROJECT_ROOT are already defined above if they were, but let's be sure.
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -72,7 +72,7 @@ echo $$ > "$PID_FILE"
 cleanup() { log "Shutting down..."; rm -f "$PID_FILE"; exit 0; }
 trap cleanup SIGTERM SIGINT SIGHUP
 
-log "=== Mission Runner started (PID $$) ==="
+log "=== IronTech started (PID $$) ==="
 
 while true; do
   if [ "$(active_forge_count)" -lt "$MAX_FORGES" ]; then

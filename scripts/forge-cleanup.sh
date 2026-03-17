@@ -31,7 +31,6 @@ cleanup_forge() {
   if [ "$force" = "--force" ]; then
     rm -rf "$forge_dir"
   else
-    # Check for uncommitted changes
     if cd "$forge_dir" && ! git diff --quiet HEAD 2>/dev/null; then
       echo "Error: Forge has uncommitted changes. Use --force to override."
       return 1
@@ -39,7 +38,6 @@ cleanup_forge() {
     rm -rf "$forge_dir"
   fi
 
-  # Remove the repo slug directory if empty
   local repo_dir="${FORGE_BASE_DIR}/${repo_slug}"
   if [ -d "$repo_dir" ] && [ -z "$(ls -A "$repo_dir" 2>/dev/null)" ]; then
     rmdir "$repo_dir"
@@ -60,22 +58,12 @@ if [ "$1" = "--all" ]; then
     echo "No forges found."
     exit 0
   fi
-  # Walk through all repo-slug/issue-* directories
   for repo_dir in "${FORGE_BASE_DIR}"/*/; do
     [ -d "$repo_dir" ] || continue
-    repo_slug=$(basename "$repo_dir")
-    # Reconstruct owner/repo from slug (owner-repo → owner/repo)
-    # Note: this assumes repo names don't contain hyphens. For safety, we just delete.
     for issue_dir in "${repo_dir}"issue-*/; do
       [ -d "$issue_dir" ] || continue
-      echo "Removing: ${issue_dir}"
-      if [ "$force" = "--force" ]; then
-        rm -rf "$issue_dir"
-      else
-        rm -rf "$issue_dir"
-      fi
+      rm -rf "$issue_dir"
     done
-    # Remove repo dir if empty
     if [ -z "$(ls -A "$repo_dir" 2>/dev/null)" ]; then
       rmdir "$repo_dir"
     fi

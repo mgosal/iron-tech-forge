@@ -5,6 +5,7 @@ set -euo pipefail
 #
 # Usage: ./scripts/start-mission.sh
 
+# SCRIPT_DIR and PROJECT_ROOT are already defined above if they were, but let's be sure.
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
@@ -17,8 +18,12 @@ PID_FILE="${PROJECT_ROOT}/.antigravity/.mission.pid"
 MISSION_LOG="${PROJECT_ROOT}/.antigravity/mission.log"
 CONFIG_FILE="${PROJECT_ROOT}/.antigravity/config.yml"
 
-POLL_INTERVAL="${AG_POLL_INTERVAL:-60}"
-MAX_FORGES="${AG_MAX_FORGES:-3}"
+# Extract defaults from config.yml (using basic grep/sed for portability)
+POLL_INTERVAL_CONFIG=$(grep 'poll_interval:' "$CONFIG_FILE" | awk '{print $2}' | tr -d ' ' || echo 60)
+MAX_FORGES_CONFIG=$(grep 'max_concurrent_forges:' "$CONFIG_FILE" | awk '{print $2}' | tr -d ' ' || echo 3)
+
+POLL_INTERVAL="${AG_POLL_INTERVAL:-$POLL_INTERVAL_CONFIG}"
+MAX_FORGES="${AG_MAX_FORGES:-$MAX_FORGES_CONFIG}"
 
 LABEL_TRIGGER="ag-fix"
 LABEL_IN_PROGRESS="ag-in-progress"

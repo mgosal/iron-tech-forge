@@ -131,9 +131,13 @@ log "--- Stage 6: PR Assembly ---"
 PR_RESPONSE=$(invoke_agent "pr-assembler" "# Context\n$(ls "${META_DIR}")")
 echo "$PR_RESPONSE" > "${META_DIR}/pr-description.md"
 
+# Get bot identity from config
+BOT_NAME=$(grep 'name:' "$CONFIG_FILE" -A 0 | grep -v 'agent_name' | head -1 | sed 's/.*name: "\([^"]*\)".*/\1/' || echo "Mission Smith")
+BOT_EMAIL=$(grep 'email:' "$CONFIG_FILE" | awk '{print $2}' | tr -d '"' || echo "mission-smith@antigravity.ai")
+
 cd "$FORGE_DIR"
 git add -A
-git commit -m "fix: resolve issue #${ISSUE_ID} (#${ISSUE_ID})" || true
+git -c user.name="$BOT_NAME" -c user.email="$BOT_EMAIL" commit -m "fix: resolve issue #${ISSUE_ID} (#${ISSUE_ID})" || true
 BRANCH_NAME="ag/issue-${ISSUE_ID}"
 git push origin "$BRANCH_NAME" 2>/dev/null || git push --set-upstream origin "$BRANCH_NAME"
 BASE_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "main")

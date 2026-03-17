@@ -1,0 +1,32 @@
+# Anti Gravity Forge — Configuration
+#
+# This tool is REPO-AGNOSTIC. It runs as a standalone service and
+# operates on any repo listed below (or all repos for a given owner).
+
+mission:
+  poll_interval: 60          # seconds between GitHub polls
+  max_concurrent_forges: 3   # parallel issue limit across ALL repos
+
+# Repos to watch. Use "owner/*" to watch all repos for an owner.
+# Each entry can override the trigger label.
+repos:
+  - name: "mgosal/anti-gravity-forge"    # this repo (self-referential)
+  # - name: "mgosal/CoS"
+  # - name: "mgosal/*"                   # wildcard: watch all mgosal repos
+
+labels:
+  trigger: "ag-fix"
+  in_progress: "ag-in-progress"
+  pr_ready: "ag-pr-ready"
+  needs_human: "ag-needs-human"
+
+forge:
+  base_dir: ".forge"           # relative to anti-gravity-forge root
+  branch_prefix: "ag/"
+  cleanup_after_merge: true
+
+agents:
+  model: "anthropic/claude-opus"   # via OpenRouter
+  provider: "openrouter"
+  max_tokens: 8192
+  temperature: 0

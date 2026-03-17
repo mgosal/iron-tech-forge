@@ -3,5 +3,5 @@
   "secrets_detected": [],
   "risky_patterns": [],
   "overall_passed": true,
-  "remediation_advice": "Empty diff provided. No changes to review. No security issues detected."
+  "remediation_advice": "No security issues detected. The diff contains metadata updates to `.forge-meta/` JSON files and a new shell script (`scripts/forge-update.sh`) embedded as a JSON content field. The shell script uses `set -euo pipefail`, does not accept user input, does not execute arbitrary commands, and only runs hardcoded `git` operations against `origin main`. No secrets, injection vectors, insecure patterns, or sensitive file additions were found."
 }

@@ -1,33 +1,21 @@
 {
-  "issue_id": 3,
-  "issue_title": "forge to add comment at each stage of pipeline",
-  "classification": "standard",
-  "problem_statement": "The forge pipeline agents (triager, engineer, test-writer, code-reviewer, security-gate, pr-assembler) do not post GitHub issue comments after completing their respective steps. Repo owners and downstream agents lack visibility into pipeline progress. Each agent's rule file and the pipeline orchestration script need to be updated so that a comment is posted to the issue after each stage completes.",
-  "affected_files": [
-    "scripts/run-pipeline.sh",
-    ".agents/rules/triager.md",
-    ".agents/rules/engineer.md",
-    ".agents/rules/test-writer.md",
-    ".agents/rules/code-reviewer.md",
-    ".agents/rules/security-gate.md",
-    ".agents/rules/pr-assembler.md"
-  ],
+  "issue_id": 7,
+  "issue_title": "auto update",
+  "classification": "trivial",
+  "problem_statement": "The project needs a shell script that pulls the latest changes from the main public repository so that updates can be easily applied and observed. This fits the existing pattern of utility scripts in the `scripts/` directory.",
+  "affected_files": ["scripts/forge-update.sh"],
   "implementation_plan": [
-    "Step 1: In `scripts/run-pipeline.sh`, add a helper function (e.g., `post_stage_comment`) that uses `gh issue comment` to post a structured status comment to the issue after each pipeline stage completes. The comment should include the agent name, stage status (success/failure), and a brief summary.",
-    "Step 2: After each agent invocation in `scripts/run-pipeline.sh`, call the `post_stage_comment` function with the appropriate agent name, issue number, and outcome.",
-    "Step 3: Update `.agents/rules/triager.md` to include an instruction that the triager must output or signal a completion summary suitable for posting as an issue comment.",
-    "Step 4: Update `.agents/rules/engineer.md` to include an instruction that the engineer must output or signal a completion summary suitable for posting as an issue comment.",
-    "Step 5: Update `.agents/rules/test-writer.md` to include an instruction that the test writer must output or signal a completion summary suitable for posting as an issue comment.",
-    "Step 6: Update `.agents/rules/code-reviewer.md` to include an instruction that the code reviewer must output or signal a completion summary suitable for posting as an issue comment.",
-    "Step 7: Update `.agents/rules/security-gate.md` to include an instruction that the security gate must output or signal a completion summary suitable for posting as an issue comment.",
-    "Step 8: Update `.agents/rules/pr-assembler.md` to include an instruction that the PR assembler must output or signal a completion summary suitable for posting as an issue comment."
+    "Create a new script `scripts/forge-update.sh` that fetches and pulls the latest changes from the main public remote (origin main).",
+    "Include safety checks: ensure the working directory is clean (no uncommitted changes) before pulling, and handle errors gracefully (e.g., network failure, merge conflicts).",
+    "Print clear status messages before and after the update (e.g., 'Fetching latest changes...', 'Update complete.' or 'Update failed.').",
+    "Make the script executable and follow the same conventions (shebang, style) as existing scripts like `scripts/forge-cleanup.sh` and `scripts/forge-create.sh`."
   ],
   "acceptance_criteria": [
-    "Each pipeline stage (triager, engineer, test-writer, code-reviewer, security-gate, pr-assembler) posts a GitHub issue comment upon completion.",
-    "Comments include the agent/stage name, completion status, and a brief summary of what was done.",
-    "Downstream agents and repo owners can see the full pipeline progress by reading the issue comments.",
-    "Pipeline continues to function correctly end-to-end after the changes.",
-    "Comments are posted even if a stage fails, indicating the failure."
+    "A new file `scripts/forge-update.sh` exists and is executable.",
+    "Running the script fetches and pulls the latest changes from the default remote's main branch.",
+    "The script warns and exits gracefully if there are uncommitted local changes.",
+    "The script prints meaningful output on success and on failure.",
+    "The script follows the same shell scripting conventions as other scripts in `scripts/`."
   ],
   "actionable": true,
   "clarification_needed": null

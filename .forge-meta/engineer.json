@@ -1,35 +1,12 @@
 {
-  "files_modified": [
+  "files_modified": [],
+  "files_created": [
     {
-      "path": "scripts/run-pipeline.sh",
-      "change_summary": "Added post_stage_comment helper function that posts structured GitHub issue comments after each pipeline stage (triager, engineer, test-writer, security-gate, code-reviewer, pr-assembler) with agent name, status (success/failure), and summary. Updated gate_check to also post a failure comment for the specific stage. Added post_stage_comment calls after every agent invocation and gate check, including in error paths."
-    },
-    {
-      "path": ".agents/rules/triager.md",
-      "change_summary": "Added instruction requiring the triager to include a 'stage_summary' field in its JSON output containing a brief human-readable completion summary suitable for posting as an issue comment."
-    },
-    {
-      "path": ".agents/rules/engineer.md",
-      "change_summary": "Added instruction requiring the engineer to include a 'stage_summary' field in its JSON output containing a brief human-readable completion summary suitable for posting as an issue comment."
-    },
-    {
-      "path": ".agents/rules/test-writer.md",
-      "change_summary": "Added instruction requiring the test writer to include a 'stage_summary' field in its JSON output containing a brief human-readable completion summary suitable for posting as an issue comment."
-    },
-    {
-      "path": ".agents/rules/code-reviewer.md",
-      "change_summary": "Added instruction requiring the code reviewer to include a 'stage_summary' field in its JSON output containing a brief human-readable completion summary suitable for posting as an issue comment."
-    },
-    {
-      "path": ".agents/rules/security-gate.md",
-      "change_summary": "Added instruction requiring the security gate to include a 'stage_summary' field in its JSON output containing a brief human-readable completion summary suitable for posting as an issue comment."
-    },
-    {
-      "path": ".agents/rules/pr-assembler.md",
-      "change_summary": "Added instruction requiring the PR assembler to include a 'stage_summary' field in its JSON output containing a brief human-readable completion summary suitable for posting as an issue comment."
+      "path": "scripts/forge-update.sh",
+      "change_summary": "Created new shell script that fetches and pulls the latest changes from origin main. Includes safety checks for uncommitted changes, clear status messages on success and failure, and follows the same conventions as existing scripts in scripts/.",
+      "content": "#!/usr/bin/env bash\nset -euo pipefail\n\necho \"=== Forge Update ===\"\necho \"\"\n\n# Ensure we are inside a git repository\nif ! git rev-parse --is-inside-work-tree > /dev/null 2>&1; then\n  echo \"Error: Not a git repository. Please run this script from the project root.\"\n  exit 1\nfi\n\n# Check for uncommitted changes\nif ! git diff --quiet || ! git diff --cached --quiet; then\n  echo \"Error: You have uncommitted local changes.\"\n  echo \"Please commit or stash your changes before updating.\"\n  echo \"\"\n  git status --short\n  exit 1\nfi\n\n# Fetch latest changes\necho \"Fetching latest changes from origin...\"\nif ! git fetch origin main; then\n  echo \"\"\n  echo \"Update failed: Could not fetch from origin. Check your network connection.\"\n  exit 1\nfi\n\n# Pull latest changes\necho \"Pulling latest changes into current branch...\"\nif ! git pull origin main; then\n  echo \"\"\n  echo \"Update failed: Could not pull from origin main.\"\n  echo \"There may be merge conflicts that need to be resolved manually.\"\n  exit 1\nfi\n\necho \"\"\necho \"Update complete. You are now up to date with origin/main.\"\n"
     }
   ],
-  "files_created": [],
   "files_deleted": [],
   "scope_creep_flags": [],
   "build_passes": true,

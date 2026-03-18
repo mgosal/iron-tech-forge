@@ -1,5 +1,7 @@
 # Iron Tech Forge
 
+A platform-independent, secure, and self-documenting agentic framework built to grow with your infrastructure.
+
 An experimental auto-fix pipeline that monitors GitHub for issues, attempts to resolve them through a chain of specialized agents, and submits draft PRs for human review.
 
 > [!NOTE]

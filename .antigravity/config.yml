@@ -10,10 +10,10 @@ repos:
   # - name: "mgosal/*"                  # wildcard support (requires gh CLI list)
 
 labels:
-  trigger: "ag-fix"
-  in_progress: "ag-in-progress"
-  pr_ready: "ag-pr-ready"
-  needs_human: "ag-needs-human"
+  trigger: "forge-fix"
+  in_progress: "forge-in-progress"
+  pr_ready: "forge-pr-ready"
+  needs_human: "forge-needs-human"
 
 forge:
   base_dir: "forge_workspaces"

@@ -31,9 +31,9 @@ MAX_FORGES_CONFIG=$(grep 'max_concurrent_forges:' "$CONFIG_FILE" | awk '{print $
 POLL_INTERVAL="${AG_POLL_INTERVAL:-$POLL_INTERVAL_CONFIG}"
 MAX_FORGES="${AG_MAX_FORGES:-$MAX_FORGES_CONFIG}"
 
-LABEL_TRIGGER="ag-fix"
-LABEL_IN_PROGRESS="ag-in-progress"
-LABEL_NEEDS_HUMAN="ag-needs-human"
+LABEL_TRIGGER="forge-fix"
+LABEL_IN_PROGRESS="forge-in-progress"
+LABEL_NEEDS_HUMAN="forge-needs-human"
 
 log() {
   echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] [mission] $1" | tee -a "$MISSION_LOG"

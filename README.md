@@ -8,7 +8,26 @@ Fixes are built in an isolated **Forge** — a dedicated cloned workspace per is
 
 ## Architecture
 
-### High-Level Flow
+Anti Gravity Forge is a **zero-dependency, Unix-native agent framework**. Unlike modern "heavy" frameworks (LangChain, CrewAI), it relies entirely on standard Bash scripts, `curl`, and `jq` to orchestrate multi-agent workflows.
+
+### Why Bash?
+- **Zero-Dependency**: No `npm install`, no `pip install`. If you have `bash`, `curl`, and `jq`, you have a forge.
+- **Transparent**: Every prompt and response is a discrete file in `.forge-meta/`. No hidden internal logic or complex abstractions.
+- **Composable**: Easily wraps existing CLI tools (like `gh`, `git`, or `docker`) without specialized "integrations."
+
+### Framework Comparison
+
+| Feature | Anti Gravity Forge | Devin / OpenHands | LangChain / CrewAI |
+|---------|---------------------|-------------------|-------------------|
+| **Language** | Bash / Unix Shell | Python / JS | Python / JS |
+| **Logic** | Linear Assembly Line | Re-entrant Loops | Graph / Sequential |
+| **Sandbox** | `git clone` (Shallow) | Docker / VM | Local / Varied |
+| **Primary Tool** | `curl` + `jq` | Persistent OS Shell | Library-specific SDKs |
+| **Complexity** | Minimalist | High | High |
+
+---
+
+## High-Level Flow
 
 ```
 GitHub Issue (ag-fix label or /ag command)
@@ -326,7 +345,23 @@ anti-gravity-forge/
 - [x] Test Writer Agent
 - [x] PR Assembler
 - [x] Multi-repo support with wildcards
+- [x] Zero-dependency Unix-native architecture
+
+### Phase 2 — Operational Hardening (Current / Planned)
+- [ ] **Dockerization**: Containerize IronTech for one-click deployment.
+- [ ] **Re-entrant Engineering**: Allow agents to run tests and fix errors in a loop (shifting from "Assembly Line" to "Loop").
+- [ ] **Webhook Triggering**: Move away from polling to real-time events.
+- [ ] **Workspace Telemetry**: Enhanced status reporting for a large fleet of forges.
 
 ---
+
+## Current Deficiencies & Limitations
+
+Anti-Gravity Forge is built on the principle of **Scientific Grounding**. We do not hype; we document reality.
+
+1. **Linear Logic**: Agents cannot currently "re-try" a fix if a test fails. They get one shot per stage.
+2. **Polling Latency**: The `start-irontech.sh` daemon polls GitHub every N seconds rather than reacting to Webhooks.
+3. **Hardware Bound**: Currently designed for single-machine use.
+4. **Shallow Sandboxing**: RELIES on local `git clone` rather than a fully ephemeral Docker/VM container for every run.
 
 *PRs are always draft. Human review is required before merging.*

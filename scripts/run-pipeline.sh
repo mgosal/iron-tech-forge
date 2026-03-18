@@ -29,14 +29,14 @@ ISSUE_ID="$2"
 OWNER=$(echo "$REPO" | cut -d'/' -f1)
 REPO_NAME=$(echo "$REPO" | cut -d'/' -f2)
 REPO_SLUG="${OWNER}-${REPO_NAME}"
-CONFIG_FILE="${PROJECT_ROOT}/.antigravity/config.yml"
+CONFIG_FILE="${PROJECT_ROOT}/.forge-master/config.yml"
 
 FORGE_BASE=$(grep 'base_dir:' "$CONFIG_FILE" | awk '{print $2}' | tr -d '"' || echo ".forge")
 FORGE_DIR="${PROJECT_ROOT}/${FORGE_BASE}/${REPO_SLUG}/issue-${ISSUE_ID}"
 META_DIR="${FORGE_DIR}/.forge-meta"
 LOG_FILE="${META_DIR}/pipeline.log"
 AGENTS_DIR="${PROJECT_ROOT}/.agents"
-TEMPLATES_DIR="${PROJECT_ROOT}/.antigravity/templates"
+TEMPLATES_DIR="${PROJECT_ROOT}/.forge-master/templates"
 
 log() {
   echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] $1" | tee -a "$LOG_FILE"
@@ -175,7 +175,7 @@ echo "$PR_RESPONSE" > "${META_DIR}/pr-description.md"
 
 # Get bot identity from environment or config
 BOT_NAME="${AG_BOT_NAME:-$(grep 'name:' "$CONFIG_FILE" -A 0 | grep -v 'agent_name' | head -1 | sed 's/.*name: "\([^"]*\)".*/\1/' || echo "ForgeMaster")}"
-BOT_EMAIL="${AG_BOT_EMAIL:-$(grep 'email:' "$CONFIG_FILE" | awk '{print $2}' | tr -d '"' || echo "forgemaster@antigravity.ai")}"
+BOT_EMAIL="${AG_BOT_EMAIL:-$(grep 'email:' "$CONFIG_FILE" | awk '{print $2}' | tr -d '"' || echo "bot@example.com")}"
 
 cd "$FORGE_DIR"
 git add -A

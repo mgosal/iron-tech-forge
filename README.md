@@ -93,7 +93,7 @@ Forge is **repo-agnostic**. It runs as a standalone service and operates on any 
 ```
 ~/code/anti-gravity-forge/              ← the tool itself (this repo)
 ├── .agents/                             ← agent brains (shared across all repos)
-├── .antigravity/config.yml              ← which repos to watch
+├── .forge-master/config.yml              ← which repos to watch
 ├── scripts/                             ← pipeline scripts
 └── .forge/                              ← runtime workspaces (gitignored)
     ├── mgosal-anti-gravity-forge/       ← forges for THIS repo (self-referential)
@@ -115,7 +115,7 @@ Agent rules live in `anti-gravity-forge/.agents/` and are **never mixed** with t
 echo "OPENROUTER_API_KEY=sk-or-..." >> .env
 
 # 2. Configure which repos to watch
-vim .antigravity/config.yml
+vim .forge-master/config.yml
 
 # 3. Start the IronTech daemon
 ./scripts/start-irontech.sh
@@ -142,7 +142,7 @@ vim .antigravity/config.yml
 
 ## Configuration
 
-**File:** `.antigravity/config.yml`
+**File:** `.forge-master/config.yml`
 
 ```yaml
 mission:

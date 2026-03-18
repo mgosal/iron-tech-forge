@@ -1,0 +1,28 @@
+mission:
+  poll_interval: 60          # seconds between GitHub polls
+  max_concurrent_forges: 3   # parallel issue limit across ALL repos
+  bot:
+    name: "ForgeMaster"
+    email: "bot@example.com" # OVERRIDE this in .env.local as AG_BOT_EMAIL to keep your real email out of Git
+
+repos:
+  - name: "mgosal/anti-gravity-forge"   # specific repo
+  # - name: "mgosal/*"                  # wildcard support (requires gh CLI list)
+
+labels:
+  trigger: "forge-fix"
+  in_progress: "forge-in-progress"
+  pr_ready: "forge-pr-ready"
+  needs_human: "forge-needs-human"
+
+forge:
+  base_dir: "forge_workspaces"
+  base_branch: "main"
+  branch_prefix: "ag/"
+  cleanup_after_merge: true
+
+agents:
+  model: "anthropic/claude-opus-4.6"   # via OpenRouter
+  provider: "openrouter"
+  max_tokens: 8192
+  temperature: 0

@@ -22,7 +22,7 @@ fi
 
 PID_FILE="${PROJECT_ROOT}/.irontech.pid"
 MISSION_LOG="${PROJECT_ROOT}/irontech.log"
-CONFIG_FILE="${PROJECT_ROOT}/.antigravity/config.yml"
+CONFIG_FILE="${PROJECT_ROOT}/.forge-master/config.yml"
 
 # Extract defaults from config.yml (using basic grep/sed for portability)
 POLL_INTERVAL_CONFIG=$(grep 'poll_interval:' "$CONFIG_FILE" | awk '{print $2}' | tr -d ' ' || echo 60)

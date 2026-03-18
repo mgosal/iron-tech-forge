@@ -15,7 +15,7 @@ elif [ -f "${PROJECT_ROOT}/.env.local" ]; then
   export $(grep -v '^#' "${PROJECT_ROOT}/.env.local" | xargs)
 fi
 
-CONFIG_FILE="${PROJECT_ROOT}/.antigravity/config.yml"
+CONFIG_FILE="${PROJECT_ROOT}/.forge-master/config.yml"
 FORGE_BASE=$(grep 'base_dir:' "$CONFIG_FILE" | awk '{print $2}' | tr -d '"' || echo ".forge")
 FORGE_BASE_DIR="${PROJECT_ROOT}/${FORGE_BASE}"
 BRANCH_PREFIX="ag/"

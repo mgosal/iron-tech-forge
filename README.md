@@ -1,6 +1,9 @@
-# Anti Gravity Forge
+# Forge Master
 
 An experimental auto-fix pipeline that monitors GitHub for issues, attempts to resolve them through a chain of specialized agents, and submits draft PRs for human review.
+
+> [!NOTE]
+> This project is **platform-independent** and has zero dependencies on the Anti-Gravity platform. It was built *on* and *with* Anti-Gravity, but operates as a standalone Unix-native tool.
 
 Fixes are built in an isolated **Forge** — a dedicated cloned workspace per issue — where agents process the code sequentially before any code reaches a PR.
 
@@ -85,7 +88,7 @@ GitHub Issue (ag-fix label or /ag command)
 
 ### Multi-Repo Design
 
-Anti Gravity Forge is **repo-agnostic**. It runs as a standalone service and operates on any repo — including itself.
+Forge is **repo-agnostic**. It runs as a standalone service and operates on any repo — including itself.
 
 ```
 ~/code/anti-gravity-forge/              ← the tool itself (this repo)
@@ -117,7 +120,7 @@ vim .antigravity/config.yml
 # 3. Start the IronTech daemon
 ./scripts/start-irontech.sh
 
-# 4. Create an issue on any watched repo with label "ag-fix"
+# 4. Create an issue on any watched repo with label "forge-fix"
 #    The forge will pick it up on the next poll cycle.
 ```
 
@@ -185,10 +188,10 @@ agents:
 
 | Label | Meaning |
 |-------|---------|
-| `ag-fix` | **Trigger:** issue needs automated fix |
-| `ag-in-progress` | Pipeline is actively working on it |
-| `ag-pr-ready` | Draft PR has been submitted |
-| `ag-needs-human` | Pipeline halted — manual intervention required |
+| `forge-fix` | **Trigger:** issue needs automated fix |
+| `forge-in-progress` | Pipeline is actively working on it |
+| `forge-pr-ready` | Draft PR has been submitted |
+| `forge-needs-human` | Pipeline halted — manual intervention required |
 
 ---
 

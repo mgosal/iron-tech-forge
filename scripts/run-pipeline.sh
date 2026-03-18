@@ -51,8 +51,8 @@ gate_check() {
   actual=$(jq -r "$field" "$file" 2>/dev/null || echo "parse_error")
   if [ "$actual" != "$expected" ]; then
     log "GATE FAILED at ${stage}: ${field} = ${actual} (expected ${expected})"
-    gh issue edit "$ISSUE_ID" -R "$REPO" --add-label "ag-needs-human" --remove-label "ag-in-progress" 2>/dev/null || true
-    gh issue comment "$ISSUE_ID" -R "$REPO" --body "⚠️ Anti Gravity pipeline halted at **${stage}**. Check the forge log for details." 2>/dev/null || true
+    gh issue edit "$ISSUE_ID" -R "$REPO" --add-label "forge-needs-human" --remove-label "forge-in-progress" 2>/dev/null || true
+    gh issue comment "$ISSUE_ID" -R "$REPO" --body "⚠️ Forge Master pipeline halted at **${stage}**. Check the forge log for details." 2>/dev/null || true
     exit 1
   fi
 }
@@ -183,7 +183,7 @@ git -c user.name="$BOT_NAME" -c user.email="$BOT_EMAIL" commit -m "fix: resolve 
 BRANCH_NAME="ag/issue-${ISSUE_ID}"
 git push origin "$BRANCH_NAME" 2>/dev/null || git push --set-upstream origin "$BRANCH_NAME"
 BASE_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "main")
-gh pr create -R "$REPO" --base "$BASE_BRANCH" --head "$BRANCH_NAME" --title "🔧 fix: ${ISSUE_TITLE}" --body-file "${META_DIR}/pr-description.md" --draft --label "ag-pr-ready" 2>/dev/null || true
-gh issue edit "$ISSUE_ID" -R "$REPO" --add-label "ag-pr-ready" --remove-label "ag-in-progress" 2>/dev/null || true
+gh pr create -R "$REPO" --base "$BASE_BRANCH" --head "$BRANCH_NAME" --title "🔧 fix: ${ISSUE_TITLE}" --body-file "${META_DIR}/pr-description.md" --draft --label "forge-pr-ready" 2>/dev/null || true
+gh issue edit "$ISSUE_ID" -R "$REPO" --add-label "forge-pr-ready" --remove-label "forge-in-progress" 2>/dev/null || true
 
 log "=== FORGE PIPELINE COMPLETE ==="

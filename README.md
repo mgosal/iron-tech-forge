@@ -83,8 +83,10 @@ GitHub Issue (forge-fix label or /forge command)
 
 ### Runtime Environment
 
-- **Phase 1 (current):** Local machine, invoked manually via `start-irontech.sh`
-- **Phase 2 (planned):** Dedicated VPS with systemd service, webhook-triggered instead of polling
+- **Phase 1:** Local machine, invoked manually via `start-irontech.sh`
+- **Phase 2:** Production-ready Docker container for VPS (Hostinger, etc.)
+- **Phase 3 (planned):** Webhook-triggered instead of polling
+
 - **AI backbone:** Claude Opus via [OpenRouter](https://openrouter.ai) API
 - **Workspace isolation:** Cloned repos in `.forge/` directory, namespaced by `<owner>-<repo>`
 
@@ -122,8 +124,13 @@ vim .forge-master/config.yml
 # 3. Start the IronTech daemon
 ./scripts/start-irontech.sh
 
-# 4. Create an issue on any watched repo with label "forge-fix"
+# 4. Initialize a new repository
+#    Create a new issue in any watched repository with the title: /forge-init
+#    The forge will automatically set up the required labels.
+
+# 5. Create an issue on any watched repo with label "forge-fix"
 #    The forge will pick it up on the next poll cycle.
+
 ```
 
 ---
@@ -139,9 +146,14 @@ This project relies on environment variables for sensitive access. Create a `.en
 # Required: Your OpenRouter API Key
 OPENROUTER_API_KEY=sk-or-v1-xxxxxxxxxxxx
 
-# Recommended: Your Git commit identity (to avoid leaking personal emails)
+# Recommended: Your GitHub Personal Access Token (for the 'gh' CLI)
+GH_TOKEN=github_pat_xxxxxxxxxxxx
+
+# Optional: Configuration Overrides (Docker Best Practices)
+AG_REPOS=mgosal/*
 AG_BOT_EMAIL="your-bot-email@example.com"
 AG_BOT_NAME="ForgeMaster"
+
 ```
 
 ### 2. Configure Repositories
@@ -189,6 +201,23 @@ For production use or to strictly separate bot activity from your personal accou
 # Clean up ALL forges
 ./scripts/forge-cleanup.sh --all
 ```
+
+---
+
+## Docker Deployment
+
+Iron Tech Forge is production-ready for VPS deployment (e.g., Hostinger).
+
+```bash
+# 1. Build and start the background daemon
+docker compose up -d --build
+
+# 2. View live logs
+docker logs -f iron-tech-forge
+```
+
+See the [Deployment Guide](file:///Users/mandip/.gemini/antigravity/brain/9283c0d9-95f1-485a-a194-c9b7c211fd2f/deployment_guide.md) for full instructions on setting up your VPS.
+
 
 ---
 
@@ -368,10 +397,15 @@ iron-tech-forge/
 - [x] Zero-dependency Unix-native architecture
 - [x] Auto-closing issue logic
 
-### Phase 2 — Operational Hardening (Current / Planned)
-- [ ] **Dockerization**: Containerize for one-click deployment.
+### Phase 2 — Operational Hardening ✅ (Built)
+- [x] **Dockerization**: Containerize for one-click deployment.
+- [x] **Repository Initialization**: Automated label setup via `/forge-init` issues.
+- [x] **Environment-based Config**: Support for secret/config separation via `.env.local`.
+
+### Phase 3 — Future Roadmap
 - [ ] **Re-entrant Engineering**: Terminal-looping for self-healing fixes.
 - [ ] **Webhook Triggering**: Move to real-time events.
+
 
 ---
 

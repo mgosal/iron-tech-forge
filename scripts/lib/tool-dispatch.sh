@@ -191,8 +191,8 @@ invoke_tool_agent() {
   if [ "$agent_name" = "code-reviewer" ]; then model_config_key="reviewer_model"; fi
   if [ "$agent_name" = "architect" ]; then model_config_key="architect_model"; fi
   
-  local AGENT_MODEL=$(grep "${model_config_key}:" "$CONFIG_FILE" | awk '{print $2}' | tr -d '"' || echo "anthropic/claude-3.5-sonnet")
-  local MAX_ROUNDS=$(grep 'max_tool_rounds:' "$CONFIG_FILE" | awk '{print $2}' || echo 10)
+  local AGENT_MODEL=$(grep -E "^\s*${model_config_key}:" "$CONFIG_FILE" | awk '{print $2}' | tr -d '"' || echo "anthropic/claude-3.5-sonnet")
+  local MAX_ROUNDS=$(grep -E "^\s*max_tool_rounds:" "$CONFIG_FILE" | awk '{print $2}' || echo 10)
   
   dispatch_log "Invoking ${agent_name} ($AGENT_MODEL) - Max Rounds: $MAX_ROUNDS"
   

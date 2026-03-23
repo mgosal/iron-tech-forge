@@ -141,7 +141,7 @@ if [ "$BLANK_REPO" = "true" ]; then
 fi
 
 # Stage 2: Triage
-if [ -f "${META_DIR}/triage.json" ] && jq -e '.actionable == "true"' "${META_DIR}/triage.json" >/dev/null 2>&1; then
+if [ -f "${META_DIR}/triage.json" ] && jq -e '.actionable == "true" or .actionable == true' "${META_DIR}/triage.json" >/dev/null 2>&1; then
   log "⏭️ Skipping Stage 2: Triage already completed."
 else
   log "📥 --- Stage 2: Triager ---"
@@ -156,7 +156,7 @@ else
 fi
 
 if [ "$(jq -r '.architectural_change // false' "${META_DIR}/triage.json")" = "true" ]; then
-  if [ -f "${META_DIR}/architect.json" ] && jq -e '.approved == true' "${META_DIR}/architect.json" >/dev/null 2>&1; then
+  if [ -f "${META_DIR}/architect.json" ] && jq -e '.approved == "true" or .approved == true' "${META_DIR}/architect.json" >/dev/null 2>&1; then
     log "⏭️ Skipping Stage 2 Escalation: Architectural approval already found."
   else
     log "⚠️ --- Architect Escalation from Triager ---"
@@ -184,7 +184,7 @@ fi
 MAX_RETRIES=$(grep 'max_retries:' "$CONFIG_FILE" | awk '{print $2}' || echo 3)
 
 # Stage 3: Engineer Loop
-if [ -f "${META_DIR}/engineer.json" ] && jq -e '.build_passes == "true"' "${META_DIR}/engineer.json" >/dev/null 2>&1; then
+if [ -f "${META_DIR}/engineer.json" ] && jq -e '.build_passes == "true" or .build_passes == true' "${META_DIR}/engineer.json" >/dev/null 2>&1; then
   log "⏭️ Skipping Stage 3: Engineer already succeeded."
   engineer_success=true
 else

@@ -38,28 +38,27 @@ BRANCH_NAME="${BRANCH_PREFIX}issue-${ISSUE_ID}"
 mkdir -p "$FORGE_BASE_DIR"
 
 if [ -d "$FORGE_DIR" ]; then
-  echo "Error: Forge already exists at ${FORGE_DIR}"
-  exit 1
-fi
-
-mkdir -p "$FORGE_DIR"
-
-echo "Cloning ${REPO} into forge..."
-gh repo clone "$REPO" "$FORGE_DIR" -- --depth=50 2>/dev/null || {
-  echo "Error: Failed to clone ${REPO}. Check that the repo exists and you have access."
-  rm -rf "$FORGE_DIR"
-  exit 1
-}
-
-cd "$FORGE_DIR"
-if git rev-parse HEAD >/dev/null 2>&1; then
-  BASE_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "main")
-  git checkout -b "$BRANCH_NAME" "origin/${BASE_BRANCH}" 2>/dev/null || git checkout -b "$BRANCH_NAME"
-  git pull --rebase origin "${BASE_BRANCH}" 2>/dev/null || true
+  echo "⚠️ Workspace already exists at ${FORGE_DIR}. Skipping clone and resuming from local state."
 else
-  # Handle completely blank repositories
-  echo "Blank repository detected. Creating branch ${BRANCH_NAME}..."
-  git checkout -b "$BRANCH_NAME"
+  mkdir -p "$FORGE_DIR"
+
+  echo "Cloning ${REPO} into forge..."
+  gh repo clone "$REPO" "$FORGE_DIR" -- --depth=50 2>/dev/null || {
+    echo "Error: Failed to clone ${REPO}. Check that the repo exists and you have access."
+    rm -rf "$FORGE_DIR"
+    exit 1
+  }
+
+  cd "$FORGE_DIR"
+  if git rev-parse HEAD >/dev/null 2>&1; then
+    BASE_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "main")
+    git checkout -b "$BRANCH_NAME" "origin/${BASE_BRANCH}" 2>/dev/null || git checkout -b "$BRANCH_NAME"
+    git pull --rebase origin "${BASE_BRANCH}" 2>/dev/null || true
+  else
+    # Handle completely blank repositories
+    echo "Blank repository detected. Creating branch ${BRANCH_NAME}..."
+    git checkout -b "$BRANCH_NAME"
+  fi
 fi
 
 mkdir -p "${FORGE_DIR}/.forge-meta"

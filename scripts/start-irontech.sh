@@ -122,6 +122,13 @@ while true; do
           gh issue comment "$ISSUE_ID" -R "$REPO" --body "🔧 **Iron Tech Forge activated.**" 2>/dev/null || true
           "${SCRIPT_DIR}/forge-create.sh" "$REPO" "$ISSUE_ID" 2>&1 | tee -a "$MISSION_LOG" || continue
           "${SCRIPT_DIR}/run-pipeline.sh" "$REPO" "$ISSUE_ID" 2>&1 | tee -a "$MISSION_LOG" || true
+          
+          # Selective Cleanup: Only wipe if NOT waiting for human input
+          if gh issue view "$ISSUE_ID" -R "$REPO" --json labels --jq '.labels[].name' 2>/dev/null | grep -q "forge-needs-human"; then
+            log "⏸️ Pipeline paused for human. Preserving workspace for ${REPO} issue #${ISSUE_ID}."
+            continue
+          fi
+
           "${SCRIPT_DIR}/forge-cleanup.sh" "$REPO" "$ISSUE_ID" "--force" 2>&1 | tee -a "$MISSION_LOG" || true
         fi
       done

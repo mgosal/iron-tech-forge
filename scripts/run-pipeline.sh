@@ -135,18 +135,25 @@ if [ "$BLANK_REPO" = "true" ]; then
 fi
 
 # Stage 2: Triage
-log "📥 --- Stage 2: Triager ---"
-TRIAGE_RAW=$(invoke_tool_agent "triager" "# Issue\n\`\`\`json\n${ISSUE_JSON}\n\`\`\`\n\n# Context\n\`\`\`json\n${CONTEXT_JSON}\n\`\`\`" "$TOOLS_READ")
-extract_json "$TRIAGE_RAW" > "${META_DIR}/triage.json"
+if [ -f "${META_DIR}/triage.json" ] && jq -e '.actionable == "true"' "${META_DIR}/triage.json" >/dev/null 2>&1; then
+  log "⏭️ Skipping Stage 2: Triage already completed."
+else
+  log "📥 --- Stage 2: Triager ---"
+  TRIAGE_RAW=$(invoke_tool_agent "triager" "# Issue\n\`\`\`json\n${ISSUE_JSON}\n\`\`\`\n\n# Context\n\`\`\`json\n${CONTEXT_JSON}\n\`\`\`" "$TOOLS_READ")
+  extract_json "$TRIAGE_RAW" > "${META_DIR}/triage.json"
 
-# Check triage outputs
-if [ "$(jq -r '.actionable' "${META_DIR}/triage.json")" != "true" ]; then
-  CLARIFICATION=$(jq -r '.clarification_needed // "Issue lacks actionable details."' "${META_DIR}/triage.json")
-  post_comment_and_pause "### ⚠️ Triager Needs Clarification\n\n${CLARIFICATION}\n\n*Please reply below and add the \`forge-fix\` label to try again.*" "Triage Clarification Needed"
+  # Check triage outputs
+  if [ "$(jq -r '.actionable' "${META_DIR}/triage.json")" != "true" ]; then
+    CLARIFICATION=$(jq -r '.clarification_needed // "Issue lacks actionable details."' "${META_DIR}/triage.json")
+    post_comment_and_pause "### ⚠️ Triager Needs Clarification\n\n${CLARIFICATION}\n\n*Please reply below and add the \`forge-fix\` label to try again.*" "Triage Clarification Needed"
+  fi
 fi
 
 if [ "$(jq -r '.architectural_change // false' "${META_DIR}/triage.json")" = "true" ]; then
-  log "⚠️ --- Architect Escalation from Triager ---"
+  if [ -f "${META_DIR}/architect.json" ] && jq -e '.approved == true' "${META_DIR}/architect.json" >/dev/null 2>&1; then
+    log "⏭️ Skipping Stage 2 Escalation: Architectural approval already found."
+  else
+    log "⚠️ --- Architect Escalation from Triager ---"
   ARCHITECT_RAW=$(invoke_tool_agent "architect" "# Issue\n\`\`\`json\n${ISSUE_JSON}\n\`\`\`\n\n# Triage Findings\n\`\`\`json\n$(cat "${META_DIR}/triage.json")\n\`\`\`" "$TOOLS_READ")
   extract_json "$ARCHITECT_RAW" > "${META_DIR}/architect.json"
   
@@ -170,36 +177,43 @@ fi
 MAX_RETRIES=$(grep 'max_retries:' "$CONFIG_FILE" | awk '{print $2}' || echo 3)
 
 # Stage 3: Engineer Loop
-log "🧑‍💻 --- Stage 3: Engineer Loop ---"
-ENGINEER_PROMPT="# Plan\n\`\`\`json\n$(cat "${META_DIR}/triage.json")\n\`\`\`\n\n# Context\n\`\`\`json\n${CONTEXT_JSON}\n\`\`\`"
-round=1
-engineer_success=false
+if [ -f "${META_DIR}/engineer.json" ] && jq -e '.build_passes == "true"' "${META_DIR}/engineer.json" >/dev/null 2>&1; then
+  log "⏭️ Skipping Stage 3: Engineer already succeeded."
+  engineer_success=true
+else
+  log "🧑‍💻 --- Stage 3: Engineer Loop ---"
+  ENGINEER_PROMPT="# Plan\n\`\`\`json\n$(cat "${META_DIR}/triage.json")\n\`\`\`\n\n# Context\n\`\`\`json\n${CONTEXT_JSON}\n\`\`\`"
+  round=1
+  engineer_success=false
 
-while [ $round -le $MAX_RETRIES ]; do
-  log "⚙️ Engineer attempt $round..."
-  ENGINEER_RAW=$(invoke_tool_agent "engineer" "$ENGINEER_PROMPT" "$TOOLS_FULL")
-  extract_json "$ENGINEER_RAW" > "${META_DIR}/engineer.json"
-  git_checkpoint "Engineer attempt $round"
-  
-  if [ "$(jq -r '.build_passes' "${META_DIR}/engineer.json")" = "true" ]; then
-    log "✅ Engineer succeeded on round $round."
-    engineer_success=true
-    break
-  fi
-  
-  if [ $round -eq $MAX_RETRIES ]; then
-    log "❌ Engineer exhausted $MAX_RETRIES retries."
-    ESCALATE=$(invoke_tool_agent "retry-escalation" "# Component: Engineer Build\n# Triage Plan\n\`\`\`json\n$(cat "${META_DIR}/triage.json")\n\`\`\`\n\n# Last Output\n\`\`\`json\n$(cat "${META_DIR}/engineer.json")\n\`\`\`" "null")
-    post_comment_and_pause "🛑 **Engineer Retry Exhaustion:**\n\n$ESCALATE" "Engineer Retry Exhaustion"
-  fi
-  
-  ENGINEER_PROMPT="${ENGINEER_PROMPT}\n\n# Round ${round} Failure\nThe build failed. See the exit_code and output in your previous message. You must fix the error."
-  round=$((round+1))
-done
+  while [ $round -le $MAX_RETRIES ]; do
+    log "⚙️ Engineer attempt $round..."
+    ENGINEER_RAW=$(invoke_tool_agent "engineer" "$ENGINEER_PROMPT" "$TOOLS_FULL")
+    extract_json "$ENGINEER_RAW" > "${META_DIR}/engineer.json"
+    git_checkpoint "Engineer attempt $round"
+    
+    if [ "$(jq -r '.build_passes' "${META_DIR}/engineer.json")" = "true" ]; then
+      log "✅ Engineer succeeded on round $round."
+      engineer_success=true
+      break
+    fi
+    
+    if [ $round -eq $MAX_RETRIES ]; then
+      log "❌ Engineer exhausted $MAX_RETRIES retries."
+      ESCALATE=$(invoke_tool_agent "retry-escalation" "# Component: Engineer Build\n# Triage Plan\n\`\`\`json\n$(cat "${META_DIR}/triage.json")\n\`\`\`\n\n# Last Output\n\`\`\`json\n$(cat "${META_DIR}/engineer.json")\n\`\`\`" "null")
+      post_comment_and_pause "🛑 **Engineer Retry Exhaustion:**\n\n$ESCALATE" "Engineer Retry Exhaustion"
+    fi
+    
+    ENGINEER_PROMPT="${ENGINEER_PROMPT}\n\n# Round ${round} Failure\nThe build failed. See the exit_code and output in your previous message. You must fix the error."
+    round=$((round+1))
+  done
+fi
 
 # Stage 4: Test Loop
 log "🧪 --- Stage 4: Test-Writer Loop ---"
-DIFF=$(cd "$FORGE_DIR" && git diff HEAD 2>/dev/null || echo "")
+# Branch-based diff: Cumulative changes since branching from main
+BASE_BRANCH=$(cd "$FORGE_DIR" && git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "main")
+DIFF=$(cd "$FORGE_DIR" && git diff "origin/${BASE_BRANCH}...HEAD" 2>/dev/null || echo "")
 TEST_PROMPT="# Plan\n\`\`\`json\n$(cat "${META_DIR}/triage.json")\n\`\`\`\n\n# Context\n\`\`\`json\n${CONTEXT_JSON}\n\`\`\`\n\n# Engineering Diff\n\`\`\`diff\n${DIFF}\n\`\`\`"
 round=1
 test_success=false
@@ -238,6 +252,8 @@ done
 
 # Stage 5: Code Review
 log "👀 --- Stage 5: Code Review ---"
+BASE_BRANCH=$(cd "$FORGE_DIR" && git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "main")
+DIFF=$(cd "$FORGE_DIR" && git diff "origin/${BASE_BRANCH}...HEAD" 2>/dev/null || echo "")
 REVIEW_RAW=$(invoke_tool_agent "code-reviewer" "# Diff\n\`\`\`diff\n${DIFF}\n\`\`\`" "$TOOLS_READ")
 extract_json "$REVIEW_RAW" > "${META_DIR}/review.json"
 

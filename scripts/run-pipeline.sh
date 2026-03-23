@@ -44,6 +44,24 @@ log() {
   echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] $1" | tee -a "$LOG_FILE"
 }
 
+# Bot Identity for Checkpoints
+BOT_NAME="${AG_BOT_NAME:-$(grep 'name:' "$CONFIG_FILE" -A 0 | grep -v 'agent_name' | head -1 | sed 's/.*name: "\([^"]*\)".*/\1/' || echo "ForgeMaster")}"
+BOT_EMAIL="${AG_BOT_EMAIL:-$(grep 'email:' "$CONFIG_FILE" | awk '{print $2}' | tr -d '"' || echo "bot@example.com")}"
+BRANCH_NAME="ag/issue-${ISSUE_ID}"
+
+git_checkpoint() {
+  local msg="${1:-Checkpointing work-in-progress}"
+  log "💾 $msg..."
+  (
+    cd "$FORGE_DIR"
+    git add -A
+    # Use 'work:' prefix to avoid auto-closing keywords
+    git -c user.name="$BOT_NAME" -c user.email="$BOT_EMAIL" commit -m "work: $msg (checkpoint)" || true
+    # Masking push output to keep logs clean
+    git push --set-upstream origin "$BRANCH_NAME" >/dev/null 2>&1 || true
+  )
+}
+
 pause_for_human() {
   local reason="$1"
   log "PIPELINE PAUSED: ${reason}"
@@ -101,6 +119,7 @@ if [ "$BLANK_REPO" = "true" ]; then
   if jq -e . >/dev/null 2>&1 <<< "$(cat "${META_DIR}/architect.json")"; then
     if [ "$(jq -r '.approved // false' "${META_DIR}/architect.json")" = "true" ]; then
       log "✅ Architect plan explicitly approved by human. Proceeding..."
+      git_checkpoint "Architect plan approved"
     else
       ARCHITECT_COMMENT=$(jq -r '.comment_body // ""' "${META_DIR}/architect.json")
       if [ -z "$ARCHITECT_COMMENT" ]; then ARCHITECT_COMMENT=$(cat "${META_DIR}/architect.json"); fi
@@ -134,6 +153,7 @@ if [ "$(jq -r '.architectural_change // false' "${META_DIR}/triage.json")" = "tr
   if jq -e . >/dev/null 2>&1 <<< "$(cat "${META_DIR}/architect.json")"; then
     if [ "$(jq -r '.approved // false' "${META_DIR}/architect.json")" = "true" ]; then
       log "✅ Structural plan explicitly approved by human. Proceeding..."
+      git_checkpoint "Structural escalation approved"
     else
       ARCHITECT_COMMENT=$(jq -r '.comment_body // ""' "${META_DIR}/architect.json")
       if [ -z "$ARCHITECT_COMMENT" ]; then ARCHITECT_COMMENT=$(cat "${META_DIR}/architect.json"); fi
@@ -159,6 +179,7 @@ while [ $round -le $MAX_RETRIES ]; do
   log "⚙️ Engineer attempt $round..."
   ENGINEER_RAW=$(invoke_tool_agent "engineer" "$ENGINEER_PROMPT" "$TOOLS_FULL")
   extract_json "$ENGINEER_RAW" > "${META_DIR}/engineer.json"
+  git_checkpoint "Engineer attempt $round"
   
   if [ "$(jq -r '.build_passes' "${META_DIR}/engineer.json")" = "true" ]; then
     log "✅ Engineer succeeded on round $round."
@@ -187,6 +208,7 @@ while [ $round -le $MAX_RETRIES ]; do
   log "⚙️ Test writer attempt $round..."
   TEST_RAW=$(invoke_tool_agent "test-writer" "$TEST_PROMPT" "$TOOLS_FULL")
   extract_json "$TEST_RAW" > "${META_DIR}/tests.json"
+  git_checkpoint "Test-Writer attempt $round"
   
   if [ "$(jq -r '.all_tests_pass' "${META_DIR}/tests.json")" = "true" ]; then
     log "✅ Tests succeeded on round $round."
@@ -237,7 +259,6 @@ BOT_EMAIL="${AG_BOT_EMAIL:-$(grep 'email:' "$CONFIG_FILE" | awk '{print $2}' | t
 cd "$FORGE_DIR"
 git add -A
 git -c user.name="$BOT_NAME" -c user.email="$BOT_EMAIL" commit -m "work: address issue #${ISSUE_ID} (${ISSUE_ID})" || true
-BRANCH_NAME="ag/issue-${ISSUE_ID}"
 git push origin "$BRANCH_NAME" 2>/dev/null || git push --set-upstream origin "$BRANCH_NAME"
 BASE_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "main")
 gh pr create -R "$REPO" --base "$BASE_BRANCH" --head "$BRANCH_NAME" --title "🔧 fix: ${ISSUE_TITLE}" --body-file "${META_DIR}/pr-description.md" --draft --label "forge-pr-ready" 2>/dev/null || true

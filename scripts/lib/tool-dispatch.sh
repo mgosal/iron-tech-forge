@@ -5,7 +5,7 @@
 TOOL_LOG_FILE="${META_DIR}/tool-dispatch.log"
 
 dispatch_log() {
-  echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] [tool] $1" | tee -a "$TOOL_LOG_FILE"
+  echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] [tool] $1" | tee -a "$TOOL_LOG_FILE" >&2
 }
 
 tool_read_file() {

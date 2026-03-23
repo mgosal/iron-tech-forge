@@ -95,9 +95,17 @@ readonly TOOLS_FULL=$(echo "$TOOLS_READ" | jq '. + [{"type":"function","function
 # Stage 1: Architect (if blank repo or flagged later)
 if [ "$BLANK_REPO" = "true" ]; then
   log "🏗️ --- Stage 1: Architect (Blank Repo) ---"
-  ARCHITECT_RESPONSE=$(invoke_tool_agent "architect" "# Issue\n\`\`\`json\n${ISSUE_JSON}\n\`\`\`\n\n# Context\n\`\`\`json\n${CONTEXT_JSON}\n\`\`\`" "$TOOLS_READ")
-  echo "$ARCHITECT_RESPONSE" > "${META_DIR}/architect.md"
-  post_comment_and_pause "⏳ **Action Required: Architect Plan**\n\n$ARCHITECT_RESPONSE" "Waiting for human to approve architect plan"
+  ARCHITECT_RAW=$(invoke_tool_agent "architect" "# Issue\n\`\`\`json\n${ISSUE_JSON}\n\`\`\`\n\n# Context\n\`\`\`json\n${CONTEXT_JSON}\n\`\`\`" "$TOOLS_READ")
+  extract_json "$ARCHITECT_RAW" > "${META_DIR}/architect.json"
+  
+  if [ "$(jq -r '.approved // false' "${META_DIR}/architect.json")" = "true" ]; then
+    log "✅ Architect plan explicitly approved by human. Proceeding..."
+  else
+    ARCHITECT_COMMENT=$(jq -r '.comment_body // ""' "${META_DIR}/architect.json")
+    if [ -z "$ARCHITECT_COMMENT" ]; then ARCHITECT_COMMENT=$(cat "${META_DIR}/architect.json"); fi
+    echo "$ARCHITECT_COMMENT" > "${META_DIR}/architect.md"
+    post_comment_and_pause "⏳ **Action Required: Architect Plan**\n\n$ARCHITECT_COMMENT" "Waiting for human to approve architect plan"
+  fi
 fi
 
 # Stage 2: Triage
@@ -113,8 +121,16 @@ fi
 
 if [ "$(jq -r '.architectural_change // false' "${META_DIR}/triage.json")" = "true" ]; then
   log "⚠️ --- Architect Escalation from Triager ---"
-  ARCHITECT_RESPONSE=$(invoke_tool_agent "architect" "# Issue\n\`\`\`json\n${ISSUE_JSON}\n\`\`\`\n\n# Triage Findings\n\`\`\`json\n$(cat "${META_DIR}/triage.json")\n\`\`\`" "$TOOLS_READ")
-  post_comment_and_pause "⏳ **Action Required: Structural Plan**\n\n$ARCHITECT_RESPONSE" "Waiting for human to approve mid-issue structural plan"
+  ARCHITECT_RAW=$(invoke_tool_agent "architect" "# Issue\n\`\`\`json\n${ISSUE_JSON}\n\`\`\`\n\n# Triage Findings\n\`\`\`json\n$(cat "${META_DIR}/triage.json")\n\`\`\`" "$TOOLS_READ")
+  extract_json "$ARCHITECT_RAW" > "${META_DIR}/architect.json"
+  
+  if [ "$(jq -r '.approved // false' "${META_DIR}/architect.json")" = "true" ]; then
+    log "✅ Structural plan explicitly approved by human. Proceeding..."
+  else
+    ARCHITECT_COMMENT=$(jq -r '.comment_body // ""' "${META_DIR}/architect.json")
+    if [ -z "$ARCHITECT_COMMENT" ]; then ARCHITECT_COMMENT=$(cat "${META_DIR}/architect.json"); fi
+    post_comment_and_pause "⏳ **Action Required: Structural Plan**\n\n$ARCHITECT_COMMENT" "Waiting for human to approve mid-issue structural plan"
+  fi
 fi
 
 # Configuration limits

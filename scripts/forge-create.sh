@@ -50,7 +50,14 @@ else
   }
 
   cd "$FORGE_DIR"
-  if git rev-parse HEAD >/dev/null 2>&1; then
+  
+  # Detect if branch exists on origin
+  if git ls-remote --exit-code --heads origin "$BRANCH_NAME" >/dev/null 2>&1; then
+    echo "Branch ${BRANCH_NAME} already exists on origin. Pulling latest state..."
+    git fetch origin "$BRANCH_NAME" --depth=50 >/dev/null 2>&1 || true
+    git checkout "$BRANCH_NAME" >/dev/null 2>&1 || true
+    git pull origin "$BRANCH_NAME" >/dev/null 2>&1 || true
+  elif git rev-parse HEAD >/dev/null 2>&1; then
     BASE_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "main")
     git checkout -b "$BRANCH_NAME" "origin/${BASE_BRANCH}" 2>/dev/null || git checkout -b "$BRANCH_NAME"
     git pull --rebase origin "${BASE_BRANCH}" 2>/dev/null || true

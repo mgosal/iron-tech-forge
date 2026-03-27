@@ -21,8 +21,22 @@ elif [ -f "${PROJECT_ROOT}/.env.local" ]; then
 fi
 
 PID_FILE="${PROJECT_ROOT}/.irontech.pid"
-MISSION_LOG="${PROJECT_ROOT}/irontech.log"
 CONFIG_FILE="${PROJECT_ROOT}/.forge-master/config.yml"
+
+# Identify Forge base directory and set up persistent logging
+FORGE_BASE=$(grep 'base_dir:' "$CONFIG_FILE" | awk '{print $2}' | tr -d '"' || echo "forge_workspaces")
+FORGE_DIR="${PROJECT_ROOT}/${FORGE_BASE}"
+MISSION_LOG="${FORGE_DIR}/irontech.log"
+LOG_ARCHIVE="${FORGE_DIR}/logs"
+
+# Ensure directories exist
+mkdir -p "$LOG_ARCHIVE"
+
+# Rotate log if it already exists from a previous session
+if [ -f "$MISSION_LOG" ]; then
+  ARCHIVE_NAME="irontech_$(date +%Y%m%d_%H%M%S).log"
+  mv "$MISSION_LOG" "${LOG_ARCHIVE}/${ARCHIVE_NAME}"
+fi
 
 # Extract defaults from config.yml (using basic grep/sed for portability)
 POLL_INTERVAL_CONFIG=$(grep 'poll_interval:' "$CONFIG_FILE" | awk '{print $2}' | tr -d ' ' || echo 60)
@@ -40,10 +54,8 @@ log() {
 }
 
 active_forge_count() {
-  local forge_base=$(grep 'base_dir:' "$CONFIG_FILE" | awk '{print $2}' | tr -d '"' || echo ".forge")
-  local forge_dir="${PROJECT_ROOT}/${forge_base}"
-  if [ ! -d "$forge_dir" ]; then echo 0; return; fi
-  find "$forge_dir" -mindepth 2 -maxdepth 2 -type d -name 'issue-*' 2>/dev/null | wc -l | tr -d ' '
+  if [ ! -d "$FORGE_DIR" ]; then echo 0; return; fi
+  find "$FORGE_DIR" -mindepth 2 -maxdepth 2 -type d -name 'issue-*' 2>/dev/null | wc -l | tr -d ' '
 }
 
 resolve_repos() {
